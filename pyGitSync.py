@@ -26,6 +26,7 @@ class argument():
         self.commit = str(my_namespace.commit)
         self.storlogin = str(my_namespace.storlogin)
         self.storpasswd = str(my_namespace.storpasswd)
+        self.edtVersion = str(my_namespace.edtVersion)
 
     def parse_args(self, parser):
         for n in sys.argv[1:]:
@@ -365,7 +366,7 @@ if __name__ == '__main__':
 
         #------------------------------------------ Импорт файлов конфигурации в EDT
         log("\nИмпорт конфигурационных файлов во временной хранилище формата EDT ")
-        cmdEdtImport = "ring edt workspace import --configuration-files "+tempDumpDir+" --workspace-location "+tempWorkspaceLocation+" --project "+tempProjectDir
+        cmdEdtImport = "ring edt@"+lArgs.edtVersion+" workspace import --configuration-files "+tempDumpDir+" --workspace-location "+tempWorkspaceLocation+" --project "+tempProjectDir
         runCMD(cmdEdtImport)
 
         #------------------------------------------ перенос EDT в локальный гит
