@@ -7,11 +7,12 @@
 - (если решить первое путем закоменчивания соответвующего куска кода https://github.com/khorevaa/gitsync-plugins/issues/53 )не очищает целевой каталог полностью, а только те каталоги и файлы, которые выгружаются при конвертировании(. settings DT-INF SRC .project ConfigDumpInfo.xml), тем самым оставляя на месте прочие файлы, которые были помещены хранилище в ручную, например: каталог с настройкой проверки SONARQUBE, Jenkinsfile и т.д..
  > Писался новичком в программировании, прошу сильно не ругать
  ### Синтаксис команды
-     python pyGitSync_Develop.py -storage=%storage% -gitdir=%gitdir% -version1c=%version1c% -tempdir=%tempdir% -projectname=%projectname% -commit=%commit% -storlogin=%storlogin% -storpasswd=%storpasswd%
+     python pyGitSync_Develop.py -storage=%storage% -gitdir=%gitdir% -version1c=%version1c% -edtVersion=2021.10.5 -tempdir=%tempdir% -projectname=%projectname% -commit=%commit% -storlogin=%storlogin% -storpasswd=%storpasswd%
 #### Параметры:
 - storage - папка с хранилищем конфигурации 1С
 - gitdir - папка GIT
-- version - версия 1С. подставится в путь c:\program files\1cv8\<version>\bin\1cv8.exe
+- version1c - версия 1С. подставится в путь c:\program files\1cv8\<version>\bin\1cv8.exe
+- edtVersion - версия EDT. 
 - tempdir - папка для временных файлов
 - projectname - имя проекта
 - commit - НЕ РЕАЛИЗОВАНО, но ставить обязательно
@@ -24,13 +25,14 @@ chcp 65001
 set storage=c:\REPOS_1C\hotfix
 set gitdir=C:\REPOS_GIT\hotfix
 set version1c=8.3.18.1483
+set edtVersion=2021.10.5
 set tempdir=c:\temp\_1
 set projectname=zup_10229
 set commit=True
 set storlogin=USERNAME
 set storpasswd=PASSWORD
 
-python pyGitSync.py -storage=%storage% -gitdir=%gitdir% -version1c=%version1c% -tempdir=%tempdir% -projectname=%projectname% -commit=%commit% -storlogin=%storlogin% -storpasswd=%storpasswd%
+python pyGitSync.py -storage=%storage% -gitdir=%gitdir% -version1c=%version1c% -edtVersion=%edtVersion% -tempdir=%tempdir% -projectname=%projectname% -commit=%commit% -storlogin=%storlogin% -storpasswd=%storpasswd%
 ```
 ### Важно
 В корне локального каталога git, должны быть расположены два файла: AUTHORS - содержит имена пользователей, логин и email (требуются для commit) и VERSION - формат XML, хранит актуальную зафиксированную версию в GIT-е. НЕ PUSH. А Commit !!!
