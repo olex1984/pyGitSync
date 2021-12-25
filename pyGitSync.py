@@ -202,18 +202,18 @@ def parseReport4Array(file) -> list:
                 log(l[0]+":"+l[1])
                 comment = True
                 try:
-                    ldict["Комментарий"]=str(l[1]).strip()
+                    ldict["Комментарий"]=str(l[1])#.strip()
                 except:
                     ldict["Комментарий"]=""
             else:
                 if comment:
-                   ldict["Комментарий"]=ldict["Комментарий"] + str(line).strip()#если в етксте программер будет использовать символ ":" в комментарии 
+                   ldict["Комментарий"]=ldict["Комментарий"] + str(line)#.strip()#если в тексте программер будет использовать символ ":" в комментарии 
                 continue
         else:
             if comment: #Слово Добавлены, ИЗМЕНЕНЫ вставляет выгрузка 1С в отчет. Она закрывает вовзможность для ввода коментария
                 if not (str.find(line, "Изменены") >= 0 or str.find(line, "Добавлены") >= 0):
                     log(line)
-                    ldict["Комментарий"]=ldict["Комментарий"] + str(line).strip()
+                    ldict["Комментарий"]=ldict["Комментарий"] + str(line)#.strip()
                 else:
                     comment =False
                     commits.append(ldict)
@@ -267,7 +267,7 @@ def generateCommitMessage(dictCommit) -> str:
         splitText.pop(0)
         tmptxt = ""
         for item in splitText:
-            tmptxt = tmptxt + item +"\n"
+            tmptxt = tmptxt + item# +"\n"
 
         commitMessage = commitMessage + " -m \""+str(tmptxt).strip()+serviceString+"\""
     else:
