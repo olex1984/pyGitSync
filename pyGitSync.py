@@ -162,12 +162,14 @@ def getDictTemplate() -> dict:
     return lDict
 
 def parseReport4Array(file) -> list:
+    ldict = None
     text = []
     commits = []
     with open(file, 'r',encoding="utf-8-sig") as f:
         for line in f:
             if len(str.strip(line)) > 1:
                 text.append(line)
+        text.append("EOF")
     comment = False
     for line in text:
         if str.find(str(line).strip(),":") >=0:
@@ -202,16 +204,20 @@ def parseReport4Array(file) -> list:
                 log(l[0]+":"+l[1])
                 comment = True
                 try:
-                    ldict["Комментарий"]=str(l[1])#.strip()
+                    ldict["Комментарий"]=str(l[1]).strip()
                 except:
                     ldict["Комментарий"]=""
             else:
                 if comment:
-                   ldict["Комментарий"]=ldict["Комментарий"] + str(line)#.strip()#если в тексте программер будет использовать символ ":" в комментарии 
+                   ldict["Комментарий"]=ldict["Комментарий"] + str(line)#.strip()#если в етксте программер будет использовать символ ":" в комментарии 
                 continue
+        
         else:
+            if line == "EOF".strip():
+                if ldict is not None:
+                    commits.append(ldict)        
             if comment: #Слово Добавлены, ИЗМЕНЕНЫ вставляет выгрузка 1С в отчет. Она закрывает вовзможность для ввода коментария
-                if not (str.find(line, "Изменены") >= 0 or str.find(line, "Добавлены") >= 0):
+                if not (str.find(line, "\tИзменены\t") >= 0 or str.find(line, "\tДобавлены\t") >= 0 or str.find(line, "\tУдалены\t") >= 0):
                     log(line)
                     ldict["Комментарий"]=ldict["Комментарий"] + str(line)#.strip()
                 else:
@@ -257,19 +263,19 @@ def moveEdtProjectToGit(srcDir, dstDir, tempDumpDir) -> None:
 
 def generateCommitMessage(dictCommit) -> str:
     data = dt.now().strftime("%Y.%m.%d %H:%M:%S")
-    text = str(dictCommit["Комментарий"]).strip()
+    text = str(dictCommit["Комментарий"])
     serviceString = "\nМетка:"+dictCommit["Метка"]+"\nВерсия:"+dictCommit["Версия"]
     commitMessage = ""
     splitText = str(text).splitlines(keepends=True)
     log("Количество строк в комментарии:"+str(len(splitText)))
     if len(splitText) > 1:
-        commitMessage = " -m \""+str(splitText[0]).strip()+"\""
+        commitMessage = " -m \""+str(splitText[0])+"\""
         splitText.pop(0)
         tmptxt = ""
         for item in splitText:
-            tmptxt = tmptxt + item# +"\n"
+            tmptxt = tmptxt + item +"\n"
 
-        commitMessage = commitMessage + " -m \""+str(tmptxt).strip()+serviceString+"\""
+        commitMessage = commitMessage + " -m \""+str(tmptxt)+serviceString+"\""
     else:
         commitMessage = " -m \""+str(text).strip()+serviceString+"\""
     log("Final commit message:"+commitMessage)
@@ -401,10 +407,9 @@ if __name__ == '__main__':
         tempDumpDir = rightPath(os.path.join(temp_path,getUid()))+".DUMP"
         tempWorkspaceLocation = rightPath(os.path.join(temp_path,getUid()))+"_WS"
         tempProjectDir = rightPath(os.path.join(temp_path,getUid()+"_PD",lArgs.projectname))
-        log("Коммит №"+commit["Версия"]+" успешно добавлен в хранилище GIT.")
+        log("Коммит №"+commit["Версия"]+" успешно добавлен в локальное хранилище GIT.")
         #log("\nВсе этапы завершены УСПЕШНО.\n")
         #break #-----------------------UNCOMMENT FOR TEST/DEBUG
 log("Чистка после себя темпа.")
 checkTempDir(temp_path)    #----------------------- COMMENT FOR TEST/DEBUG
 exit(0)
-    
