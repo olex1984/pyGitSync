@@ -251,11 +251,16 @@ def moveEdtProjectToGit(srcDir, dstDir, tempDumpDir) -> None:
         sDir = os.listdir(srcDir)
         for item in sDir:
             if os.path.isdir(os.path.join(dstDir,item)):
-                shutil.rmtree(os.path.join(dstDir,item))
+                log("RMTREE="+str(os.path.join(dstDir,item)))
+                shutil.rmtree(os.path.join(dstDir,item),ignore_errors=True)
+                log("MOVE \n SRC="+str(os.path.join(srcDir,item)) +" \nDST="+str(os.path.join(dstDir,item)))
                 shutil.move(os.path.join(srcDir,item),os.path.join(dstDir,item))
             elif os.path.isfile(os.path.join(dstDir,item)):
+                log("Remove="+str(os.path.join(dstDir,item)))
                 os.remove(os.path.join(dstDir,item))
+                log("MOVE \n SRC="+str(os.path.join(srcDir,item)) +" \nDST="+str(os.path.join(dstDir,item)))
                 shutil.move(os.path.join(srcDir,item),os.path.join(dstDir,item))
+        log("MOVE \n SRC="+str(configFilePath) +" \nDST="+str(os.path.join(dstDir,configFileName)))
         shutil.move(configFilePath, os.path.join(dstDir,configFileName))        
     except Exception as e:
             log(e)
