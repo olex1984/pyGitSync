@@ -129,7 +129,9 @@ def checkTempDir(temp_path, delete=False) ->None:
     if os.path.exists(temp_path):
         log("Вреемнный каталог существует. Очистка от мусора.")
         try:
-            shutil.rmtree(temp_path)
+            res = deletePath(temp_path)
+            if res > 0:
+                exit(1)
             time.sleep(2)
             os.makedirs(temp_path)
         except:
@@ -181,6 +183,7 @@ def parseReport4Array(file) -> list:
             if l[0] == "Версия":
                 if comment:
                     commits.append(ldict)
+                    ldict = None
                 comment = False
                 ldict = getDictTemplate()
                 ldict[l[0]]=l[1]
@@ -215,7 +218,8 @@ def parseReport4Array(file) -> list:
         else:
             if line == "EOF".strip():
                 if ldict is not None:
-                    commits.append(ldict)        
+                    commits.append(ldict)
+                    ldict = None        
             if comment: #Слово Добавлены, ИЗМЕНЕНЫ вставляет выгрузка 1С в отчет. Она закрывает вовзможность для ввода коментария
                 if not (str.find(line, "\tИзменены\t") >= 0 or str.find(line, "\tДобавлены\t") >= 0 or str.find(line, "\tУдалены\t") >= 0):
                     log(line)
@@ -223,7 +227,7 @@ def parseReport4Array(file) -> list:
                 else:
                     comment =False
                     commits.append(ldict)
-            
+                    ldict = None
             continue
     
     return commits
@@ -244,27 +248,56 @@ def parseAuthors2Dict(file) -> dict:
                 employees.append(employee)
     return employees    
 
-def moveEdtProjectToGit(srcDir, dstDir, tempDumpDir) -> None:
+def deletePath(path) -> int:
+    code = 0
+    if os.path.exists(path):
+        if os.path.isfile(path) or os.path.islink(path):
+            try:
+                os.unlink(path)
+            except Exception as e:
+                log(e)
+                code = 1           
+        if os.path.isdir(path):
+            for elem in os.listdir(path):
+                elem_path = os.path.join(path, elem)
+                code = deletePath(elem_path)
+            try:
+                os.rmdir(path)
+            except Exception as e:
+                code = 1
+                log(e)
+    else:
+        log("Путь: " + path + " не существует. Пропуск ...")
+    return code
+
+def moveEdtProjectToGit(srcDir, dstDir, tempDumpDir) -> int:
+    ############### TempDumpDir #####################
     configFileName = "ConfigDumpInfo.xml"
-    configFilePath = os.path.join(tempDumpDir,configFileName) 
+    configFilePath = os.path.join(tempDumpDir,configFileName)
+    dst_configPath =  os.path.join(dstDir,configFileName)
+    if deletePath(dst_configPath) > 0:
+        return 1
+    log("MOVE \n SRC="+str(configFilePath) +" \nDST="+str(dst_configPath))
     try:
-        sDir = os.listdir(srcDir)
-        for item in sDir:
-            if os.path.isdir(os.path.join(dstDir,item)):
-                log("RMTREE="+str(os.path.join(dstDir,item)))
-                shutil.rmtree(os.path.join(dstDir,item),ignore_errors=True)
-                log("MOVE \n SRC="+str(os.path.join(srcDir,item)) +" \nDST="+str(os.path.join(dstDir,item)))
-                shutil.move(os.path.join(srcDir,item),os.path.join(dstDir,item))
-            elif os.path.isfile(os.path.join(dstDir,item)):
-                log("Remove="+str(os.path.join(dstDir,item)))
-                os.remove(os.path.join(dstDir,item))
-                log("MOVE \n SRC="+str(os.path.join(srcDir,item)) +" \nDST="+str(os.path.join(dstDir,item)))
-                shutil.move(os.path.join(srcDir,item),os.path.join(dstDir,item))
-        log("MOVE \n SRC="+str(configFilePath) +" \nDST="+str(os.path.join(dstDir,configFileName)))
-        shutil.move(configFilePath, os.path.join(dstDir,configFileName))        
+        shutil.move(configFilePath, dst_configPath)
     except Exception as e:
+        log(e)
+        return 1
+    ################ srcDir ##########################
+    for item in os.listdir(srcDir):
+        dst_path = os.path.join(dstDir,item)
+        log("Delete: " + dst_path)
+        result = deletePath(dst_path)
+        if result > 0:
+            return 1
+        log("MOVE \n SRC="+str(os.path.join(srcDir,item)) +" \nDST="+str(dst_path))
+        try:
+            shutil.move(os.path.join(srcDir,item),os.path.join(dstDir,item))
+        except Exception as e:
             log(e)
-            exit(1)
+            return 1
+
+    return 0
 
 def generateCommitMessage(dictCommit) -> str:
     data = dt.now().strftime("%Y.%m.%d %H:%M:%S")
@@ -382,7 +415,8 @@ if __name__ == '__main__':
 
         #------------------------------------------ перенос EDT в локальный гит
         log("\nПеренос хранилища формата EDT в локальную папку GIT "+lArgs.gitdir)
-        moveEdtProjectToGit(tempProjectDir,lArgs.gitdir, tempDumpDir)
+        if moveEdtProjectToGit(tempProjectDir,lArgs.gitdir, tempDumpDir) > 0:
+            exit(1)
 
         os.chdir(lArgs.gitdir)
         #---------- GIT ADD .
