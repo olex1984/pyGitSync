@@ -200,6 +200,9 @@ def parseReport4Array(file) -> list:
             elif l[0] == "Время создания":
                 ldict[l[0]]=l[1]
                 log(l[0]+":"+l[1])
+                # ++ переход на новую платформу 8.3.21.1302. В ней изменен вывод hil файла. Убрать если версия ниже 8.3.18 (может и между ними где-то сменилось) 
+                comment = True
+                # -- переход на новую платформу. Изменен вывод hil файла
             elif l[0] == "Метка":
                 ldict[l[0]] = l[1]
                 log(l[0]+":"+l[1])
@@ -331,6 +334,21 @@ def saveVersion(versionFile, cur) -> None:
     f.write(text4save)
     f.close()
 
+def replaceCharactersInCommits(inputCommits) -> list:
+    char_to_replace = {'"': '\\\"',
+                   '\'': '\\\''}
+    outCommits = []
+    for commit in inputCommits:
+        outDict = {}
+        for key, value in commit.items():
+            if (key == "Метка" or key == "Комментарий"):
+                for keyChar, valueChar in char_to_replace.items():
+                    value = value.replace(keyChar, valueChar)
+            
+            outDict[key] = value
+        outCommits.append(outDict)
+    
+    return outCommits
 
 
 if __name__ == '__main__':
@@ -353,7 +371,10 @@ if __name__ == '__main__':
     authorsFileName = "AUTHORS"
     exe1cBin = "bin/1cv8.exe"
     lArgs.gitdir = rightPath(lArgs.gitdir)
-    lArgs.storage = rightPath(lArgs.storage)
+    
+    if str.find(lArgs.storage,"tcp://") == -1:
+        lArgs.storage = rightPath(lArgs.storage)
+    
     prgm_path = os.environ.get("PROGRAMFILES")
     temp_path = rightPath( lArgs.tempdir)
     tempDBDir = rightPath(os.path.join(temp_path, getUid()))+".DB"
@@ -380,7 +401,7 @@ if __name__ == '__main__':
     
     #--------------------------------------------- STEP 2
     log("Выгрузка отчета по версиям коммитов в хранилище.")
-    cmdCreateRepReport = "DESIGNER /F"+tempDBDir+" /Out "+outTxt+" /WA+ /LRU /VLRU /DisableStartupMessages /DisableStartupDialogs /ConfigurationRepositoryN "+lArgs.storlogin+" /ConfigurationRepositoryP "+lArgs.storpasswd+" /ConfigurationRepositoryF "+lArgs.storage+" /ConfigurationRepositoryReport "+repReportFilePath+" -NBegin "+str(int(getVersionNumber(versionFilePath))+1)+" -ReportFormat txt –ReportType Brief -IncludeCommentLinesWithDoubleSlash"
+    cmdCreateRepReport = "DESIGNER /F"+tempDBDir+" /Out "+outTxt+" /WA+ /LRU /VLRU /DisableStartupMessages /DisableStartupDialogs /ConfigurationRepositoryN "+lArgs.storlogin+" /ConfigurationRepositoryP "+lArgs.storpasswd+" /ConfigurationRepositoryF "+lArgs.storage+" /ConfigurationRepositoryReport "+repReportFilePath+" -NBegin "+str(int(getVersionNumber(versionFilePath))+1)+" -ReportFormat txt –ReportType Brief -IncludeCommentLinesWithDoubleSlash "
     runCommand(exe1cFullPath,cmdCreateRepReport, outTxt)
     try:
         commits = parseReport4Array(repReportFilePath)
@@ -395,17 +416,19 @@ if __name__ == '__main__':
         log("\nНовых коммитов не обнаружено. Выход.")
         exit(0)
     log(commits)#FIXME
+    commitsWOCharacters = replaceCharactersInCommits(commits)
+    log(commitsWOCharacters)
     #--------------------------------------------- STEP 3
     log("Загрузка конфигурации из хранилища во временную базу")
-    for commit in commits:
+    for commit in commitsWOCharacters:
         #------------------------------------------ ЗАГРУЗКА КОНФ. ИЗ ХРАНИЛИЩА в ИБ
         log("\nОбрабатывается коммит №"+commit["Версия"])
-        cmdUpdateCFG = "DESIGNER /F"+tempDBDir+" /Out "+outTxt+" /WA+ /LRU /VLRU /DisableStartupMessages /DisableStartupDialogs /ConfigurationRepositoryN "+lArgs.storlogin+" /ConfigurationRepositoryP "+lArgs.storpasswd+" /ConfigurationRepositoryF "+lArgs.storage+" /ConfigurationRepositoryUpdateCfg -v "+commit["Версия"]+" -force"
+        cmdUpdateCFG = "DESIGNER /F"+tempDBDir+" /Out "+outTxt+" /WA+ /LRU /VLRU /DisableStartupMessages /DisableStartupDialogs /ConfigurationRepositoryN "+lArgs.storlogin+" /ConfigurationRepositoryP "+lArgs.storpasswd+" /ConfigurationRepositoryF "+lArgs.storage+" /ConfigurationRepositoryUpdateCfg -v "+commit["Версия"]+" -force "
         runCommand(exe1cFullPath, cmdUpdateCFG)
          
         #------------------------------------------ ВЫГРУЗКА Файлов конфигурации
         log("\nВыгрузка конфигурационных файлов в формате 1С во временную папку.")
-        cmdDumpFiles = "DESIGNER /F"+tempDBDir+" /Out "+outTxt+" /WA+ /LRU /VLRU /DisableStartupMessages /DisableStartupDialogs /DumpConfigToFiles "+tempDumpDir+" -format Hierarchical"
+        cmdDumpFiles = "DESIGNER /F"+tempDBDir+" /Out "+outTxt+" /WA+ /LRU /VLRU /DisableStartupMessages /DisableStartupDialogs /DumpConfigToFiles "+tempDumpDir+" -format Hierarchical "
         runCommand(exe1cFullPath,cmdDumpFiles)
 
         #------------------------------------------ Импорт файлов конфигурации в EDT
