@@ -24,6 +24,7 @@ class argument():
         self.tempdir = str(my_namespace.tempdir)
         self.projectname = str(my_namespace.projectname)
         self.commit = str(my_namespace.commit)
+        # self.ext_name = str(my_namespace.ext_name) #Используется только вов нешних.
         self.storlogin = str(my_namespace.storlogin)
         self.storpasswd = str(my_namespace.storpasswd)
         self.edtVersion = str(my_namespace.edtVersion)
@@ -324,10 +325,12 @@ def generateCommitMessage(dictCommit) -> str:
 
 def saveVersion(versionFile, cur) -> None:
     num = getVersionNumber(versionFile)
+    oldNumString = "<VERSION>"+str(num)+"</VERSION>"
+    curNumString = "<VERSION>"+str(cur)+"</VERSION>"
     f = open(versionFile, "r+", encoding="utf-8-sig")
     text = f.read()
     f.close()
-    text4save = str.replace(text, str(num), str(cur))
+    text4save = str.replace(text, oldNumString, curNumString)
     log("Запись текущего номера в файл.")
     log(text4save)
     f = open(versionFile, "w", encoding="utf-8-sig")
@@ -345,7 +348,7 @@ def replaceCharactersInCommits(inputCommits) -> list:
                 for keyChar, valueChar in char_to_replace.items():
                     value = value.replace(keyChar, valueChar)
             
-            outDict[key] = value
+            outDict[key] = str(value).strip()
         outCommits.append(outDict)
     
     return outCommits
@@ -371,10 +374,8 @@ if __name__ == '__main__':
     authorsFileName = "AUTHORS"
     exe1cBin = "bin/1cv8.exe"
     lArgs.gitdir = rightPath(lArgs.gitdir)
-    
     if str.find(lArgs.storage,"tcp://") == -1:
         lArgs.storage = rightPath(lArgs.storage)
-    
     prgm_path = os.environ.get("PROGRAMFILES")
     temp_path = rightPath( lArgs.tempdir)
     tempDBDir = rightPath(os.path.join(temp_path, getUid()))+".DB"
@@ -456,7 +457,13 @@ if __name__ == '__main__':
         commitMessageString = generateCommitMessage(commit)
         for employee in employees:
             if employee["name"] == commit["Пользователь"]:
-                cmdGitCommit = 'git commit '+commitMessageString+' --no-edit --date="'+str(gitHistoryDate).strip()+'" --author="'+str(employee["author"]).strip()+'"'
+                log("commitMessageString = "+ commitMessageString)
+                data = str(gitHistoryDate).strip()
+                log("--date = "+ data)
+                lauthor = str(employee["author"]).strip()
+                log("--author = "+ lauthor)
+                cmdGitCommit = 'git commit '+commitMessageString+' --no-edit --date="'+data+'" --author="'+lauthor+'"'
+                log(cmdGitCommit)
         runCommand(cmdGitCommit)
         try:
             log("\nЗапись в файл VERSION")
